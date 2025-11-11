@@ -1,6 +1,6 @@
 import express from "express";
 import mysql from "mysql2/promise";
-import {setupServices} from "./services.js";
+import {startupServices} from "./services.js";
 
 
 const app = express();
@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
 });
 
 //Example Route
-setupServices(app, db);
+startupServices(app, db);
 
 //Server Start Message
 app.listen(3000, () => console.log("Server running on http://localhost:3000"));
