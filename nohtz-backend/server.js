@@ -1,5 +1,6 @@
 import express from "express";
 import mysql from "mysql2/promise";
+import {setupServices} from "./services.js";
 
 
 const app = express();
@@ -19,10 +20,7 @@ app.get("/", (req, res) => {
 });
 
 //Example Route
-app.get("/users", async (req, res) => {
-    const {rows} = await db.query("SELECT * FROM users");
-    res.json(rows);
-});
+setupServices(app, db);
 
 //Server Start Message
 app.listen(3000, () => console.log("Server running on http://localhost:3000"));
