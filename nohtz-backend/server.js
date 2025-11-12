@@ -5,7 +5,7 @@ import {startupServices} from "./services.js";
 
 const app = express();
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static("../nohtz-frontend"));
 
 //DB Connection
 const db = await mysql.createConnection({
@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
     res.send("Backend is running");
 });
 
-//Example Route
+//Services
 startupServices(app, db);
 
 //Server Start Message
