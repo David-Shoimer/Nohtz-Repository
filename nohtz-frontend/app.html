@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nohtz - Notes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-page">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Folders</h2>
+            <button id="addFolderBtn" class="btn-icon" title="Add Folder">+</button>
+        </div>
+        <div class="folders-list" id="foldersList">
+            <div class="folder-item" data-folder-id="null">
+                <span>All Notes</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Notes View -->
+        <div id="notesView" class="notes-view">
+            <div class="notes-grid" id="notesGrid"></div>
+        </div>
+
+        <!-- Note Editor View -->
+        <div id="noteEditorView" class="note-editor-view" style="display: none;">
+            <div class="editor-toolbar">
+                <div class="toolbar-group">
+                    <select id="fontFamily" class="toolbar-select">
+                        <option value="Arial">Arial</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Comic Sans MS">Comic Sans MS</option>
+                    </select>
+                    <select id="fontSize" class="toolbar-select">
+                        <option value="12px">12px</option>
+                        <option value="14px">14px</option>
+                        <option value="16px" selected>16px</option>
+                        <option value="18px">18px</option>
+                        <option value="20px">20px</option>
+                        <option value="24px">24px</option>
+                        <option value="28px">28px</option>
+                        <option value="32px">32px</option>
+                    </select>
+                    <input type="color" id="textColor" class="toolbar-color" value="#000000" title="Text Color">
+                </div>
+                <div class="toolbar-group">
+                    <button id="saveNoteBtn" class="btn btn-primary">Save</button>
+                    <button id="closeEditorBtn" class="btn btn-secondary">Close</button>
+                </div>
+            </div>
+            <div class="editor-content">
+                <div id="noteEditor" contenteditable="true" class="note-editor"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Note Context Menu -->
+    <div id="noteContextMenu" class="context-menu"></div>
+    <div id="folderContextMenu" class="context-menu"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
