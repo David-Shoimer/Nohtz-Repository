@@ -1,15 +1,10 @@
-// API Base URL
 const API_BASE = "";
 
-// Current state
 let currentFolderId = null;
 let currentNoteId = null;
 let notes = [];
 let folders = [];
 
-// ========== AUTHENTICATION ==========
-
-// Check if user is logged in
 async function checkAuth() {
     try {
         const response = await fetch(`${API_BASE}/api/me`, {
@@ -26,7 +21,6 @@ async function checkAuth() {
     }
 }
 
-// Register
 async function register(username, password) {
     try {
         const response = await fetch(`${API_BASE}/api/register`, {
@@ -47,7 +41,6 @@ async function register(username, password) {
     }
 }
 
-// Login
 async function login(username, password) {
     try {
         const response = await fetch(`${API_BASE}/api/login`, {
@@ -68,7 +61,22 @@ async function login(username, password) {
     }
 }
 
-// ========== FOLDERS ==========
+async function logout() {
+    try {
+        const response = await fetch(`${API_BASE}/api/logout`, {
+            method: "POST",
+            credentials: "include"
+        });
+        if (response.ok) {
+            window.location.href = "index.html";
+        } else {
+            window.location.href = "index.html";
+        }
+    } catch (error) {
+        console.error("Logout error:", error);
+        window.location.href = "index.html";
+    }
+}
 
 async function loadFolders() {
     try {
@@ -88,10 +96,8 @@ function renderFolders() {
     const foldersList = document.getElementById("foldersList");
     if (!foldersList) return;
 
-    // Keep "All Notes" folder
     foldersList.innerHTML = '<div class="folder-item active" data-folder-id="null"><span>All Notes</span></div>';
     
-    // Add click handler for "All Notes"
     const allNotesItem = foldersList.querySelector('[data-folder-id="null"]');
     if (allNotesItem) {
         allNotesItem.addEventListener("click", () => selectFolder(null));
@@ -163,7 +169,6 @@ function selectFolder(folderId) {
     currentFolderId = folderId === "null" ? null : folderId;
     currentNoteId = null;
     
-    // Update active folder
     document.querySelectorAll(".folder-item").forEach(item => {
         item.classList.remove("active");
         const itemFolderId = item.dataset.folderId;
@@ -173,12 +178,9 @@ function selectFolder(folderId) {
         }
     });
 
-    // Close editor and load notes
     closeNoteEditor();
     loadNotes();
 }
-
-// ========== NOTES ==========
 
 async function loadNotes() {
     try {
@@ -204,10 +206,13 @@ function renderNotes() {
     notes.forEach(note => {
         const noteCard = document.createElement("div");
         noteCard.className = "note-card";
-        noteCard.dataset.noteId = note.id;
+        const noteId = note.id || note.note_id || note.ID || note.NOTE_ID;
+        noteCard.dataset.noteId = noteId;
         noteCard.innerHTML = `<div class="note-title">${escapeHtml(note.title)}</div>`;
-        noteCard.addEventListener("click", () => openNote(note.id));
-        noteCard.addEventListener("contextmenu", (e) => showNoteContextMenu(e, note.id));
+        if (noteId) {
+            noteCard.addEventListener("click", () => openNote(noteId));
+            noteCard.addEventListener("contextmenu", (e) => showNoteContextMenu(e, noteId));
+        }
         notesGrid.appendChild(noteCard);
     });
 }
@@ -226,7 +231,12 @@ async function createNote() {
         if (response.ok) {
             const note = await response.json();
             await loadNotes();
-            openNote(note.id);
+            const noteId = note.id || note.note_id || note.ID || note.NOTE_ID;
+            if (noteId) {
+                openNote(noteId);
+            } else {
+                console.warn("Note created but no ID found:", note);
+            }
         } else {
             const data = await response.json();
             alert(data.error || "Failed to create note");
@@ -239,25 +249,25 @@ async function createNote() {
 
 async function openNote(noteId) {
     try {
+        if (!noteId) {
+            console.error("Cannot open note: no ID provided");
+            return;
+        }
         const response = await fetch(`${API_BASE}/api/notes/${noteId}`, {
             credentials: "include"
         });
         if (response.ok) {
             const note = await response.json();
-            currentNoteId = note.id;
+            currentNoteId = note.id || note.note_id || note.ID || note.NOTE_ID || noteId;
 
-            // Show editor, hide notes view
             document.getElementById("notesView").style.display = "none";
             document.getElementById("noteEditorView").style.display = "flex";
 
-            // Load note content
             const editor = document.getElementById("noteEditor");
             editor.innerHTML = note.content || "";
             
-            // Update title if needed
             document.title = `${note.title} - Nohtz`;
 
-            // Apply current formatting
             applyFormatting();
         } else {
             alert("Failed to load note");
@@ -302,8 +312,15 @@ async function saveNote() {
 }
 
 async function renameNote(noteId) {
-    const note = notes.find(n => n.id === noteId);
-    if (!note) return;
+    const note = notes.find(n => {
+        const noteIdValue = n.id || n.note_id || n.ID || n.NOTE_ID;
+        return noteIdValue == noteId; // Use == for type coercion
+    });
+    
+    if (!note) {
+        console.error("Note not found for ID:", noteId);
+        return;
+    }
 
     const newTitle = prompt("Enter new title:", note.title);
     if (!newTitle || newTitle === note.title) return;
@@ -317,7 +334,10 @@ async function renameNote(noteId) {
         });
         if (response.ok) {
             await loadNotes();
-            if (currentNoteId === noteId) {
+            const currentNoteIdValue = typeof currentNoteId === 'object' 
+                ? (currentNoteId?.id || currentNoteId?.note_id || currentNoteId?.ID || currentNoteId?.NOTE_ID)
+                : currentNoteId;
+            if (currentNoteIdValue == noteId) {
                 document.title = `${newTitle} - Nohtz`;
             }
         } else {
@@ -373,31 +393,49 @@ async function moveNoteToFolder(noteId, folderId) {
     }
 }
 
-// ========== CONTEXT MENUS ==========
-
 function showNoteContextMenu(e, noteId) {
     e.preventDefault();
     const menu = document.getElementById("noteContextMenu");
+    
     menu.innerHTML = `
-        <div class="context-menu-item" onclick="renameNote(${noteId}); hideContextMenus();">Rename</div>
-        <div class="context-menu-item" onclick="deleteNote(${noteId}); hideContextMenus();">Delete</div>
+        <div class="context-menu-item" data-action="rename" data-note-id="${noteId}">Rename</div>
+        <div class="context-menu-item" data-action="delete" data-note-id="${noteId}">Delete</div>
         <div class="context-menu-divider"></div>
-        <div class="context-menu-item">Move to Folder
+        <div class="context-menu-item" data-action="move">Move to Folder
             <div class="context-submenu" id="moveToFolderSubmenu"></div>
         </div>
     `;
 
-    // Build folder submenu
+    const renameItem = menu.querySelector('[data-action="rename"]');
+    renameItem.addEventListener("click", () => {
+        renameNote(noteId);
+        hideContextMenus();
+    });
+    
+    const deleteItem = menu.querySelector('[data-action="delete"]');
+    deleteItem.addEventListener("click", () => {
+        deleteNote(noteId);
+        hideContextMenus();
+    });
+
     const submenu = document.getElementById("moveToFolderSubmenu");
-    submenu.innerHTML = '<div class="context-menu-item" onclick="moveNoteToFolder(' + noteId + ', null); hideContextMenus();">All Notes</div>';
+    const allNotesItem = document.createElement("div");
+    allNotesItem.className = "context-menu-item";
+    allNotesItem.textContent = "All Notes";
+    allNotesItem.addEventListener("click", () => {
+        moveNoteToFolder(noteId, null);
+        hideContextMenus();
+    });
+    submenu.appendChild(allNotesItem);
+    
     folders.forEach(folder => {
         const item = document.createElement("div");
         item.className = "context-menu-item";
         item.textContent = folder.name;
-        item.onclick = () => {
+        item.addEventListener("click", () => {
             moveNoteToFolder(noteId, folder.id);
             hideContextMenus();
-        };
+        });
         submenu.appendChild(item);
     });
 
@@ -423,8 +461,6 @@ function hideContextMenus() {
     document.getElementById("folderContextMenu").style.display = "none";
 }
 
-// ========== TEXT FORMATTING ==========
-
 function applyFormatting() {
     const editor = document.getElementById("noteEditor");
     if (!editor) return;
@@ -438,19 +474,13 @@ function applyFormatting() {
     editor.style.color = textColor;
 }
 
-// ========== UTILITY ==========
-
 function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
 }
 
-// ========== INITIALIZATION ==========
-
-// Page-specific initialization
 if (document.getElementById("loginForm")) {
-    // Login page
     document.getElementById("loginForm").addEventListener("submit", (e) => {
         e.preventDefault();
         const username = document.getElementById("username").value;
@@ -460,7 +490,6 @@ if (document.getElementById("loginForm")) {
 }
 
 if (document.getElementById("registerForm")) {
-    // Register page
     document.getElementById("registerForm").addEventListener("submit", (e) => {
         e.preventDefault();
         const username = document.getElementById("username").value;
@@ -470,7 +499,6 @@ if (document.getElementById("registerForm")) {
 }
 
 if (document.getElementById("notesGrid")) {
-    // App page
     (async () => {
         const user = await checkAuth();
         if (!user) {
@@ -478,41 +506,32 @@ if (document.getElementById("notesGrid")) {
             return;
         }
 
-        // Load folders and notes
         await loadFolders();
         await loadNotes();
 
-        // Event listeners
         document.getElementById("addFolderBtn").addEventListener("click", createFolder);
         document.getElementById("saveNoteBtn").addEventListener("click", saveNote);
         document.getElementById("closeEditorBtn").addEventListener("click", closeNoteEditor);
+        document.getElementById("signOutBtn").addEventListener("click", logout);
 
-        // Formatting controls
         document.getElementById("fontFamily").addEventListener("change", applyFormatting);
         document.getElementById("fontSize").addEventListener("change", applyFormatting);
         document.getElementById("textColor").addEventListener("change", applyFormatting);
 
-        // Right-click on empty space to create note
         const notesGrid = document.getElementById("notesGrid");
-        notesGrid.addEventListener("contextmenu", (e) => {
-            if (e.target === notesGrid || (e.target.closest(".note-card") === null && e.target !== notesGrid.querySelector(".note-card"))) {
-                e.preventDefault();
-                createNote();
-            }
-        });
+        const notesView = document.getElementById("notesView");
         
-        // Also allow right-click on the notes-view container
-        document.getElementById("notesView").addEventListener("contextmenu", (e) => {
-            if (e.target.id === "notesView" || (e.target.id === "notesGrid" && e.target.children.length === 0)) {
+        notesView.addEventListener("contextmenu", (e) => {
+            if (e.target === notesView || e.target === notesGrid || 
+                (e.target.closest(".note-card") === null && e.target.id !== "notesGrid")) {
                 e.preventDefault();
+                e.stopPropagation();
                 createNote();
             }
         });
 
-        // Click outside to hide context menus
         document.addEventListener("click", hideContextMenus);
 
-        // Initialize formatting
         applyFormatting();
     })();
 }

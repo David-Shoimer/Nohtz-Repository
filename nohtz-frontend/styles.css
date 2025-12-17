@@ -208,6 +208,15 @@ body {
     padding: 10px 0;
 }
 
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.sidebar-footer .btn {
+    width: 100%;
+}
+
 .folder-item {
     padding: 12px 20px;
     cursor: pointer;

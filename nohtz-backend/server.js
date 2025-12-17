@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 const db = await mysql.createConnection({
 host: "localhost",
 user: "root",
-password: "Logman718!",
+password: "Logman718",
 database: "notes_app",
 });
 
